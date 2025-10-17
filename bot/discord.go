@@ -49,9 +49,13 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	switch {
 	case strings.Contains(message.Content, "!help"):
 		discord.ChannelMessageSend(message.ChannelID, "Hello World😃")
-	case strings.Contains(message.Content, "!bye"):
+	case strings.Contains(message.Content, "!product-list"):
 		discord.ChannelMessageSend(message.ChannelID, "Good Bye👋")
-		// add more cases if required
+	// add more cases if required
+	case strings.Contains(message.Content, "!product"):
+		discord.ChannelMessageSend(message.ChannelID, "Good Bye👋")
+	case strings.Contains(message.Content, "!product") && strings.Contains(message.Content, "!release"):
+		discord.ChannelMessageSend(message.ChannelID, "Good Bye👋")
 	}
 
 }
