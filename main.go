@@ -1,8 +1,23 @@
 package main
 
-import "github.com/rojack96/endoflife-bot/bot"
+import (
+	"log"
+	"os"
+
+	"github.com/joho/godotenv"
+	"github.com/rojack96/endoflife-bot/bot"
+)
 
 func main() {
-	bot := &bot.DiscordBot{Token: "MTQyODc5Mjk5ODEwMzA4OTE2Mg.GiKBMw.iNwvqkCt30-c2g2yd8pNdvEdzIUD7KKwL_2bpI"} // create a new instance of DiscordBot struct
-	bot.Run()                                                                                                 // call the run function of bot/bot.go
+	// Try to load .env file if it exists
+	godotenv.Load()
+
+	// Get token from environment variable
+	token := os.Getenv("DISCORD_TOKEN")
+	if token == "" {
+		log.Fatal("DISCORD_TOKEN environment variable is not set")
+	}
+
+	bot := &bot.DiscordBot{Token: token}
+	bot.Run()
 }

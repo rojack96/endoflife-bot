@@ -1,0 +1,14 @@
+services:
+  endoflife:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION}
+    image: endoflife:${VERSION}
+    container_name: endoflife-${VERSION}
+    env_file:
+      - .env
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+    restart: unless-stopped
