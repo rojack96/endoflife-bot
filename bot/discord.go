@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -16,62 +14,73 @@ type DiscordBot struct {
 }
 
 func (d *DiscordBot) Run() {
-
-	// create a session
 	discord, err := discordgo.New("Bot " + d.Token)
 	checkNilErr(err)
 
-	// add a event handler
-	discord.AddHandler(newMessage)
+	// Registra l'handler per le interactions invece di messaggi
+	discord.AddHandler(handleInteraction)
 
-	// open session
+	// Registra i comandi slash
+	commands := []*discordgo.ApplicationCommand{
+		{
+			Name:        "help",
+			Description: "Mostra l'help del bot",
+		},
+		{
+			Name:        "product-list",
+			Description: "Lista dei prodotti",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "page",
+					Description: "Numero di pagina",
+					Required:    false,
+				},
+			},
+		},
+	}
+
 	discord.Open()
-	defer discord.Close() // close session, after function termination
+	defer discord.Close()
 
-	// keep bot running untill there is NO os interruption (ctrl + C)
+	// Registra i comandi per il bot
+	for _, cmd := range commands {
+		_, err := discord.ApplicationCommandCreate(discord.State.User.ID, "", cmd)
+		if err != nil {
+			log.Printf("Errore creazione comando %v: %v", cmd.Name, err)
+		}
+	}
+
 	fmt.Println("Bot running....")
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
-
 }
 
-func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
+func handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	switch i.ApplicationCommandData().Name {
+	case "help":
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Hello World😃",
+			},
+		})
 
-	/* prevent bot responding to its own message
-	this is achived by looking into the message author id
-	if message.author.id is same as bot.author.id then just return
-	*/
-	if message.Author.ID == discord.State.User.ID {
-		return
-	}
-
-	// respond to user message if it contains `!help` or `!bye`
-	switch {
-	case strings.Contains(message.Content, "!help"):
-		discord.ChannelMessageSend(message.ChannelID, "Hello World😃")
-	case strings.Contains(message.Content, "!product-list"):
-		parts := strings.Fields(message.Content)
-
-		page := 1 // default
-		if len(parts) > 1 {
-			num, err := strconv.Atoi(parts[1])
-			if err != nil || num < 1 {
-				discord.ChannelMessageSend(message.ChannelID, "❌ error: page value not valid")
-				return
-			}
-			page = num
+	case "product-list":
+		page := 1
+		if len(i.ApplicationCommandData().Options) > 0 {
+			page = int(i.ApplicationCommandData().Options[0].IntValue())
 		}
-
+		fmt.Print("qui")
 		productsList := productList(page)
-		discord.ChannelMessageSendComplex(message.ChannelID, productsList)
-	// add more cases if required
-	case strings.Contains(message.Content, "!product"):
-		discord.ChannelMessageSend(message.ChannelID, "Good Bye👋")
-	case strings.Contains(message.Content, "!product") && strings.Contains(message.Content, "!release"):
-		discord.ChannelMessageSend(message.ChannelID, "Good Bye👋")
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Embeds: productsList.Embeds,
+			},
+		})
 	}
-
 }
 
 func checkNilErr(e error) {
