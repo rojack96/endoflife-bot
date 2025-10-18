@@ -1,16 +1,14 @@
 package dto
 
-import "time"
-
 type Product struct {
-	Name                 string    `json:"name"`
-	Release              string    `json:"release"`
-	Released             time.Time `json:"released"`
-	EndOfActiveSupport   time.Time `json:"end_of_active_support"`
-	EndOfSecuritySupport time.Time `json:"end_of_security_support"`
+	Name                 string  `json:"name"`
+	Release              string  `json:"release"`
+	Released             string  `json:"released"`
+	EndOfActiveSupport   *string `json:"end_of_active_support,omitempty"`
+	EndOfSecuritySupport *string `json:"end_of_security_support,omitempty"`
 	Latest               struct {
-		Version string    `json:"version"`
-		Date    time.Time `json:"date"`
-		Link    string    `json:"link"`
+		Version string `json:"version"`
+		Date    string `json:"date"`
+		Link    string `json:"link"`
 	} `json:"latest"`
 }

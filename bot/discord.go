@@ -24,7 +24,7 @@ func (d *DiscordBot) Run() {
 	commands := []*discordgo.ApplicationCommand{
 		{
 			Name:        "help",
-			Description: "Mostra l'help del bot",
+			Description: "Show help message",
 		},
 		{
 			Name:        "product-list",
@@ -33,8 +33,20 @@ func (d *DiscordBot) Run() {
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
 					Name:        "page",
-					Description: "Numero di pagina",
+					Description: "Number of the page to display",
 					Required:    false,
+				},
+			},
+		},
+		{
+			Name:        "product-lts",
+			Description: "Lista dei prodotti",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "product",
+					Description: "Product to get LTS info",
+					Required:    true,
 				},
 			},
 		},
@@ -72,7 +84,7 @@ func handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if len(i.ApplicationCommandData().Options) > 0 {
 			page = int(i.ApplicationCommandData().Options[0].IntValue())
 		}
-		fmt.Print("qui")
+
 		productsList := productList(page)
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -80,6 +92,21 @@ func handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 				Embeds: productsList.Embeds,
 			},
 		})
+	case "product-lts":
+		// Implementa la logica per il comando product-lts qui
+		product := ""
+		if len(i.ApplicationCommandData().Options) > 0 {
+			product = i.ApplicationCommandData().Options[0].StringValue()
+		}
+
+		productLts := productLts(product)
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Embeds: productLts.Embeds,
+			},
+		})
+
 	}
 }
 
