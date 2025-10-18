@@ -1,11 +1,13 @@
 package endoflife
 
-import "github.com/rojack96/endoflife-bot/endoflife/dto"
+import (
+	"github.com/rojack96/endoflife-bot/endoflife/dto"
+)
 
 type EndOfLifeService interface {
 	GetAllProducts() ([]string, error)
 	GetProductLts(product string) (dto.Product, error)
-	GetProductDetails(product string) ([]dto.Product, error)
+	GetProducts(product string) ([]dto.Product, error)
 }
 type endOfLifeServiceImpl struct {
 	repo EndOfLifeRepository
@@ -54,7 +56,31 @@ func (e *endOfLifeServiceImpl) GetProductLts(product string) (dto.Product, error
 	return result, nil
 }
 
-func (e *endOfLifeServiceImpl) GetProductDetails(product string) ([]dto.Product, error) {
+func (e *endOfLifeServiceImpl) GetProducts(product string) ([]dto.Product, error) {
 	var result []dto.Product
+	p, err := e.repo.GetProduct(product)
+	if err != nil {
+		return result, err
+	}
+
+	for _, release := range p.Result.Releases {
+		result = append(result, dto.Product{
+			Name:                 product,
+			Release:              release.Name,
+			Released:             release.ReleaseDate,
+			EndOfActiveSupport:   release.EoasFrom,
+			EndOfSecuritySupport: release.EolFrom,
+			Latest: struct {
+				Version string `json:"version"`
+				Date    string `json:"date"`
+				Link    string `json:"link"`
+			}{
+				Version: release.Latest.Name,
+				Date:    release.Latest.Date,
+				Link:    release.Latest.Link,
+			},
+		})
+	}
+
 	return result, nil
 }

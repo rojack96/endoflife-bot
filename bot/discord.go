@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -52,6 +53,24 @@ func (d *DiscordBot) Run() {
 				},
 			},
 		},
+		{
+			Name:        "product-info",
+			Description: "Show paginated releases for a product",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "product",
+					Description: "Product to show releases for",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "page",
+					Description: "Page number",
+					Required:    false,
+				},
+			},
+		},
 	}
 
 	discord.Open()
@@ -95,7 +114,6 @@ func handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			})
 
 		case "product-lts":
-			// Implementa la logica per il comando product-lts qui
 			product := ""
 			if len(i.ApplicationCommandData().Options) > 0 {
 				product = i.ApplicationCommandData().Options[0].StringValue()
@@ -109,6 +127,36 @@ func handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 				},
 			})
 
+		case "product-info":
+			product := ""
+			page := 1
+			opts := i.ApplicationCommandData().Options
+			if len(opts) > 0 {
+				// options may be in any order; iterate
+				for _, o := range opts {
+					if o.Name == "product" && o.StringValue() != "" {
+						product = o.StringValue()
+					}
+					if o.Name == "page" {
+						page = int(o.IntValue())
+					}
+				}
+			}
+			if product == "" {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Please provide a valid product name.",
+					},
+				})
+				return
+			}
+
+			data := products(product, page)
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: data,
+			})
 		}
 		return
 	}
@@ -152,8 +200,48 @@ func handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			if err != nil {
 				log.Printf("failed to update message: %v", err)
 			}
+			return
 		}
-		return
+
+		// Gestione bottoni paginazione releases: product_releases_prev_{escaped}_{page}
+		if strings.HasPrefix(custom, "product_releases_prev_") || strings.HasPrefix(custom, "product_releases_next_") {
+			parts := strings.Split(custom, "_")
+			// expected: product, releases, prev|next, {escapedProduct}, {page}
+			if len(parts) < 5 {
+				return
+			}
+			escapedProduct := parts[3]
+			pageStr := parts[4]
+			page, err := strconv.Atoi(pageStr)
+			if err != nil {
+				return
+			}
+			productName, err := url.QueryUnescape(escapedProduct)
+			if err != nil {
+				// fallback to escaped string if unescape fails
+				productName = escapedProduct
+			}
+
+			newPage := page
+			if parts[2] == "prev" {
+				newPage = page - 1
+			} else if parts[2] == "next" {
+				newPage = page + 1
+			}
+			if newPage < 1 {
+				newPage = 1
+			}
+
+			data := products(productName, newPage)
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseUpdateMessage,
+				Data: data,
+			})
+			if err != nil {
+				log.Printf("failed to update product releases message: %v", err)
+			}
+			return
+		}
 	}
 }
 
