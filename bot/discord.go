@@ -71,6 +71,24 @@ func (d *DiscordBot) Run() {
 				},
 			},
 		},
+		{
+			Name:        "product-releases",
+			Description: "Get basic info about a specific product release",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "product",
+					Description: "Product name",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "release",
+					Description: "Release version",
+					Required:    true,
+				},
+			},
+		},
 	}
 
 	discord.Open()
@@ -153,6 +171,36 @@ func handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			}
 
 			data := products(product, page)
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: data,
+			})
+		case "product-releases":
+			product := ""
+			release := ""
+			opts := i.ApplicationCommandData().Options
+			if len(opts) > 0 {
+				for _, o := range opts {
+					if o.Name == "product" {
+						product = o.StringValue()
+					}
+					if o.Name == "release" {
+						release = o.StringValue()
+					}
+				}
+			}
+
+			if product == "" || release == "" {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Please provide both product name and release version.",
+					},
+				})
+				return
+			}
+
+			data := productReleases(product, release)
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: data,

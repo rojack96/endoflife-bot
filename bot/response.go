@@ -88,8 +88,8 @@ func productLts(product string) *discordgo.MessageSend {
 			},
 		}
 	} else {
-		productInfoEndOfActiveSupport := "null"
-		productInfoEndOfSecuritySupport := "null"
+		productInfoEndOfActiveSupport := "--"
+		productInfoEndOfSecuritySupport := "--"
 		if productInfo.EndOfActiveSupport != nil {
 			productInfoEndOfActiveSupport = *productInfo.EndOfActiveSupport
 		}
@@ -150,8 +150,8 @@ func products(product string, page int) *discordgo.InteractionResponseData {
 	// costruisci tutti i campi (uno per ogni release)
 	allFields := []*discordgo.MessageEmbedField{}
 	for _, p := range productInfo {
-		endActive := "null"
-		endSecurity := "null"
+		endActive := "--"
+		endSecurity := "--"
 		if p.EndOfActiveSupport != nil {
 			endActive = *p.EndOfActiveSupport
 		}
@@ -244,6 +244,49 @@ func products(product string, page int) *discordgo.InteractionResponseData {
 	return &discordgo.InteractionResponseData{
 		Embeds:     []*discordgo.MessageEmbed{embed},
 		Components: []discordgo.MessageComponent{actions},
+	}
+}
+
+func productReleases(product string, release string) *discordgo.InteractionResponseData {
+	repo := endoflife.NewEndOfLifeRepository()
+	service := endoflife.NewEndOfLifeService(repo)
+
+	productInfo, err := service.GetProductReleases(product, release)
+	if err != nil {
+		return &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{
+				{
+					Type:        discordgo.EmbedTypeRich,
+					Title:       "Error",
+					Description: "Failed to fetch product information",
+				},
+			},
+		}
+	}
+
+	embed := &discordgo.MessageEmbed{
+		Type:  discordgo.EmbedTypeRich,
+		Title: fmt.Sprintf("%s %s", productInfo.Name, productInfo.Release),
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:   "Released",
+				Value:  productInfo.Released,
+				Inline: true,
+			},
+			{
+				Name:   "Latest Version",
+				Value:  productInfo.Latest.Version,
+				Inline: true,
+			},
+			{
+				Name:  "Latest Release Link",
+				Value: productInfo.Latest.Link,
+			},
+		},
+	}
+
+	return &discordgo.InteractionResponseData{
+		Embeds: []*discordgo.MessageEmbed{embed},
 	}
 }
 

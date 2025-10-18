@@ -92,8 +92,8 @@ type FullProductListResponse struct {
 }
 
 type ProductReleaseResponse struct {
-	SchemaVersion string           `json:"schema_version"`
-	Result        []ProductRelease `json:"result"`
+	SchemaVersion string         `json:"schema_version"`
+	Result        ProductRelease `json:"result"`
 }
 
 type ProductResponse struct {
