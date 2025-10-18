@@ -9,6 +9,7 @@ type EndOfLifeService interface {
 	GetProductLts(product string) (dto.Product, error)
 	GetProducts(product string) ([]dto.Product, error)
 	GetProductReleases(product, release string) (dto.Product, error)
+	GetProductReleasesLatest(product string) (dto.Product, error)
 }
 type endOfLifeServiceImpl struct {
 	repo EndOfLifeRepository
@@ -90,6 +91,41 @@ func (e *endOfLifeServiceImpl) GetProductReleases(product, release string) (dto.
 	{
 		var result dto.Product
 		p, err := e.repo.GetProductReleases(product, release)
+		if err != nil {
+			return result, err
+		}
+
+		result = dto.Product{
+			Name:     product,
+			Release:  p.Result.Name,
+			Released: p.Result.ReleaseDate,
+			Latest: struct {
+				Version string `json:"version"`
+				Date    string `json:"date"`
+				Link    string `json:"link"`
+			}{
+				Version: p.Result.Latest.Name,
+				Date:    p.Result.Latest.Date,
+				Link:    p.Result.Latest.Link,
+			},
+		}
+
+		if p.Result.EoasFrom != nil {
+			result.EndOfActiveSupport = p.Result.EoasFrom
+		}
+
+		if p.Result.EolFrom != nil {
+			result.EndOfSecuritySupport = p.Result.EolFrom
+		}
+
+		return result, nil
+	}
+}
+
+func (e *endOfLifeServiceImpl) GetProductReleasesLatest(product string) (dto.Product, error) {
+	{
+		var result dto.Product
+		p, err := e.repo.GetProductReleasesLatest(product)
 		if err != nil {
 			return result, err
 		}
