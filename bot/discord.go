@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -70,43 +72,88 @@ func (d *DiscordBot) Run() {
 }
 
 func handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	switch i.ApplicationCommandData().Name {
-	case "help":
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Hello World😃",
-			},
-		})
+	// Gestione comandi slash
+	if i.Type == discordgo.InteractionApplicationCommand {
+		switch i.ApplicationCommandData().Name {
+		case "help":
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Hello World😃",
+				},
+			})
 
-	case "product-list":
-		page := 1
-		if len(i.ApplicationCommandData().Options) > 0 {
-			page = int(i.ApplicationCommandData().Options[0].IntValue())
+		case "product-list":
+			page := 1
+			if len(i.ApplicationCommandData().Options) > 0 {
+				page = int(i.ApplicationCommandData().Options[0].IntValue())
+			}
+			data := productList(page)
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: data,
+			})
+
+		case "product-lts":
+			// Implementa la logica per il comando product-lts qui
+			product := ""
+			if len(i.ApplicationCommandData().Options) > 0 {
+				product = i.ApplicationCommandData().Options[0].StringValue()
+			}
+
+			productLts := productLts(product)
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: productLts.Embeds,
+				},
+			})
+
 		}
+		return
+	}
 
-		productsList := productList(page)
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Embeds: productsList.Embeds,
-			},
-		})
-	case "product-lts":
-		// Implementa la logica per il comando product-lts qui
-		product := ""
-		if len(i.ApplicationCommandData().Options) > 0 {
-			product = i.ApplicationCommandData().Options[0].StringValue()
+	// Gestione component interactions (bottoni / select)
+	if i.Type == discordgo.InteractionMessageComponent {
+		custom := i.MessageComponentData().CustomID
+		// aspettarsi: products_prev_{page} o products_next_{page}
+		if strings.HasPrefix(custom, "products_prev_") || strings.HasPrefix(custom, "products_next_") {
+			parts := strings.Split(custom, "_")
+			if len(parts) < 3 {
+				// fallback: ignore
+				return
+			}
+			pageStr := parts[2]
+			page, err := strconv.Atoi(pageStr)
+			if err != nil {
+				// ignore malformed id
+				return
+			}
+
+			newPage := page
+			if parts[1] == "prev" {
+				newPage = page - 1
+			} else if parts[1] == "next" {
+				newPage = page + 1
+			}
+
+			if newPage < 1 {
+				newPage = 1
+			}
+
+			// costruisci nuova pagina
+			data := productList(newPage)
+
+			// aggiorna il messaggio originale (edit)
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseUpdateMessage,
+				Data: data,
+			})
+			if err != nil {
+				log.Printf("failed to update message: %v", err)
+			}
 		}
-
-		productLts := productLts(product)
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Embeds: productLts.Embeds,
-			},
-		})
-
+		return
 	}
 }
 
