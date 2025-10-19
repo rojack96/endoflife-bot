@@ -1,6 +1,8 @@
 package endoflife
 
 import (
+	"time"
+
 	"github.com/rojack96/endoflife-bot/endoflife/dto"
 	"go.uber.org/zap"
 )
@@ -71,9 +73,17 @@ func (e *endOfLifeServiceImpl) GetProducts(product string) ([]dto.Product, error
 	}
 
 	for _, release := range p.Result.Releases {
+		releaseName := release.Name
+		if release.EolFrom != nil {
+			endOfSecuritySupport, _ := time.Parse("2006-01-02", *release.EolFrom)
+			if endOfSecuritySupport.Before(time.Now()) {
+				releaseName = "~~" + release.Name + "~~ (EOL)"
+			}
+		}
+
 		result = append(result, dto.Product{
 			Name:                 product,
-			Release:              release.Name,
+			Release:              releaseName,
 			Released:             release.ReleaseDate,
 			EndOfActiveSupport:   release.EoasFrom,
 			EndOfSecuritySupport: release.EolFrom,
@@ -101,9 +111,17 @@ func (e *endOfLifeServiceImpl) GetProductReleases(product, release string) (dto.
 			return result, err
 		}
 
+		releaseName := p.Result.Name
+		if p.Result.EolFrom != nil {
+			endOfSecuritySupport, _ := time.Parse("2006-01-02", *p.Result.EolFrom)
+			if endOfSecuritySupport.Before(time.Now()) {
+				releaseName += " (EOL)"
+			}
+		}
+
 		result = dto.Product{
 			Name:     product,
-			Release:  p.Result.Name,
+			Release:  releaseName,
 			Released: p.Result.ReleaseDate,
 			Latest: struct {
 				Version string `json:"version"`

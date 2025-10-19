@@ -28,7 +28,7 @@ type ProductRelease struct {
 	IsLts            bool            `json:"isLts"`
 	LtsFrom          *string         `json:"ltsFrom,omitempty"`
 	IsEoas           bool            `json:"isEoas"`
-	EoasFrom         *string         `json:"eoaFrom,omitempty"`
+	EoasFrom         *string         `json:"eoasFrom,omitempty"`
 	IsEol            bool            `json:"isEol"`
 	EolFrom          *string         `json:"eolFrom,omitempty"`
 	IsDiscontinued   bool            `json:"isDiscontinued"`
@@ -58,7 +58,7 @@ type ProductDetails struct {
 	VersionCommand *string      `json:"versionCommand,omitempty"`
 	Identifiers    []Identifier `json:"identifiers,omitempty"`
 	Labels         *struct {
-		Eoas         *string `json:"eos,omitempty"`
+		Eoas         *string `json:"eoas,omitempty"`
 		Discontinued *string `json:"discontinued,omitempty"`
 		Eol          string  `json:"eol"`
 		Eoes         *string `json:"eoes,omitempty"`
