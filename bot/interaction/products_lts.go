@@ -1,4 +1,4 @@
-package bot
+package interaction
 
 import (
 	"log"
@@ -7,7 +7,22 @@ import (
 	"github.com/rojack96/endoflife-bot/endoflife"
 )
 
-func productLts(product string) *discordgo.MessageSend {
+func ProductLts(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	product := ""
+	if len(i.ApplicationCommandData().Options) > 0 {
+		product = i.ApplicationCommandData().Options[0].StringValue()
+	}
+
+	productLts := responseProductLts(product)
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: productLts.Embeds,
+		},
+	})
+}
+
+func responseProductLts(product string) *discordgo.MessageSend {
 	repo := endoflife.NewEndOfLifeRepository()
 	service := endoflife.NewEndOfLifeService(repo)
 

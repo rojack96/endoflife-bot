@@ -1,8 +1,18 @@
-package bot
+package interaction
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"github.com/bwmarrin/discordgo"
+)
 
-func help() *discordgo.InteractionResponseData {
+func Help(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	data := helpResponse()
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: data,
+	})
+}
+
+func helpResponse() *discordgo.InteractionResponseData {
 	embed := &discordgo.MessageEmbed{
 		Type:        discordgo.EmbedTypeRich,
 		Title:       "EndOfLife Bot Help",

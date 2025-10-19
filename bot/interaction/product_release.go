@@ -1,4 +1,4 @@
-package bot
+package interaction
 
 import (
 	"fmt"
@@ -8,7 +8,40 @@ import (
 	"github.com/rojack96/endoflife-bot/endoflife/dto"
 )
 
-func productReleases(product string, release string) *discordgo.InteractionResponseData {
+func ProductRelease(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	product := ""
+	release := ""
+	opts := i.ApplicationCommandData().Options
+	if len(opts) > 0 {
+		for _, o := range opts {
+			if o.Name == "product" {
+				product = o.StringValue()
+			}
+			if o.Name == "release" {
+				release = o.StringValue()
+			}
+		}
+	}
+
+	if product == "" || release == "" {
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Please provide both product name and release version.",
+			},
+		})
+		return
+	}
+
+	data := responseProductReleases(product, release)
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: data,
+	})
+
+}
+
+func responseProductReleases(product string, release string) *discordgo.InteractionResponseData {
 	repo := endoflife.NewEndOfLifeRepository()
 	service := endoflife.NewEndOfLifeService(repo)
 	var (

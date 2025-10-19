@@ -1,16 +1,90 @@
-package bot
+package interaction
 
 import (
 	"fmt"
 	"log"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rojack96/endoflife-bot/endoflife"
 )
 
-func products(product string, page int) *discordgo.InteractionResponseData {
+func ProductsButton(custom string, s *discordgo.Session, i *discordgo.InteractionCreate) {
+	if strings.HasPrefix(custom, "product_releases_prev_") || strings.HasPrefix(custom, "product_releases_next_") {
+		parts := strings.Split(custom, "_")
+		// expected: product, releases, prev|next, {escapedProduct}, {page}
+		if len(parts) < 5 {
+			return
+		}
+		escapedProduct := parts[3]
+		pageStr := parts[4]
+		page, err := strconv.Atoi(pageStr)
+		if err != nil {
+			return
+		}
+		productName, err := url.QueryUnescape(escapedProduct)
+		if err != nil {
+			// fallback to escaped string if unescape fails
+			productName = escapedProduct
+		}
+
+		newPage := page
+		if parts[2] == "prev" {
+			newPage = page - 1
+		} else if parts[2] == "next" {
+			newPage = page + 1
+		}
+		if newPage < 1 {
+			newPage = 1
+		}
+
+		data := responseProducts(productName, newPage)
+		err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseUpdateMessage,
+			Data: data,
+		})
+		if err != nil {
+			log.Printf("failed to update product releases message: %v", err)
+		}
+		return
+	}
+}
+
+func Products(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	product := ""
+	page := 1
+	opts := i.ApplicationCommandData().Options
+	if len(opts) > 0 {
+		// options may be in any order; iterate
+		for _, o := range opts {
+			if o.Name == "product" && o.StringValue() != "" {
+				product = o.StringValue()
+			}
+			if o.Name == "page" {
+				page = int(o.IntValue())
+			}
+		}
+	}
+	if product == "" {
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Please provide a valid product name.",
+			},
+		})
+		return
+	}
+
+	data := responseProducts(product, page)
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: data,
+	})
+}
+
+func responseProducts(product string, page int) *discordgo.InteractionResponseData {
 	repo := endoflife.NewEndOfLifeRepository()
 	service := endoflife.NewEndOfLifeService(repo)
 
