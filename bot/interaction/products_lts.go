@@ -1,10 +1,9 @@
 package interaction
 
 import (
-	"log"
-
 	"github.com/bwmarrin/discordgo"
 	"github.com/rojack96/endoflife-bot/endoflife"
+	"go.uber.org/zap"
 )
 
 func (i *Interaction) ProductLts() {
@@ -13,7 +12,7 @@ func (i *Interaction) ProductLts() {
 		product = i.ic.ApplicationCommandData().Options[0].StringValue()
 	}
 
-	productLts := responseProductLts(product)
+	productLts := i.responseProductLts(product)
 	i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -22,13 +21,13 @@ func (i *Interaction) ProductLts() {
 	})
 }
 
-func responseProductLts(product string) *discordgo.MessageSend {
-	repo := endoflife.NewEndOfLifeRepository()
-	service := endoflife.NewEndOfLifeService(repo)
+func (i *Interaction) responseProductLts(product string) *discordgo.MessageSend {
+	repo := endoflife.NewEndOfLifeRepository(i.log)
+	service := endoflife.NewEndOfLifeService(repo, i.log)
 
 	productInfo, err := service.GetProductLts(product)
 	if err != nil {
-		log.Fatal("Error fetching products:", err)
+		i.log.Error("failed to get product LTS info", zap.Error(err))
 	}
 
 	fields := []*discordgo.MessageEmbedField{}

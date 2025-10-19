@@ -6,6 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/rojack96/endoflife-bot/endoflife"
 	"github.com/rojack96/endoflife-bot/endoflife/dto"
+	"go.uber.org/zap"
 )
 
 func (i *Interaction) ProductRelease() {
@@ -33,7 +34,7 @@ func (i *Interaction) ProductRelease() {
 		return
 	}
 
-	data := responseProductReleases(product, release)
+	data := i.responseProductReleases(product, release)
 	i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: data,
@@ -41,9 +42,9 @@ func (i *Interaction) ProductRelease() {
 
 }
 
-func responseProductReleases(product string, release string) *discordgo.InteractionResponseData {
-	repo := endoflife.NewEndOfLifeRepository()
-	service := endoflife.NewEndOfLifeService(repo)
+func (i *Interaction) responseProductReleases(product string, release string) *discordgo.InteractionResponseData {
+	repo := endoflife.NewEndOfLifeRepository(i.log)
+	service := endoflife.NewEndOfLifeService(repo, i.log)
 	var (
 		productInfo dto.Product
 		err         error
@@ -55,6 +56,7 @@ func responseProductReleases(product string, release string) *discordgo.Interact
 	}
 
 	if err != nil {
+		i.log.Error("failed to get product release info", zap.Error(err))
 		return &discordgo.InteractionResponseData{
 			Embeds: []*discordgo.MessageEmbed{
 				{

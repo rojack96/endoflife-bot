@@ -2,6 +2,7 @@ package endoflife
 
 import (
 	"github.com/rojack96/endoflife-bot/endoflife/dto"
+	"go.uber.org/zap"
 )
 
 type EndOfLifeService interface {
@@ -13,10 +14,11 @@ type EndOfLifeService interface {
 }
 type endOfLifeServiceImpl struct {
 	repo EndOfLifeRepository
+	log  *zap.Logger
 }
 
-func NewEndOfLifeService(repo EndOfLifeRepository) EndOfLifeService {
-	return &endOfLifeServiceImpl{repo}
+func NewEndOfLifeService(repo EndOfLifeRepository, log *zap.Logger) EndOfLifeService {
+	return &endOfLifeServiceImpl{repo, log}
 }
 
 func (e *endOfLifeServiceImpl) GetAllProducts() ([]string, error) {
@@ -24,6 +26,7 @@ func (e *endOfLifeServiceImpl) GetAllProducts() ([]string, error) {
 
 	allProducts, err := e.repo.GetAllProducts()
 	if err != nil {
+		e.log.Error("failed to get all products", zap.Error(err))
 		return nil, err
 	}
 
@@ -38,6 +41,7 @@ func (e *endOfLifeServiceImpl) GetProductLts(product string) (dto.Product, error
 	var result dto.Product
 	p, err := e.repo.GetProduct(product)
 	if err != nil {
+		e.log.Error("failed to get product LTS info", zap.Error(err))
 		return dto.Product{}, err
 	}
 
@@ -62,6 +66,7 @@ func (e *endOfLifeServiceImpl) GetProducts(product string) ([]dto.Product, error
 	var result []dto.Product
 	p, err := e.repo.GetProduct(product)
 	if err != nil {
+		e.log.Error("failed to get products info", zap.Error(err))
 		return result, err
 	}
 
@@ -92,6 +97,7 @@ func (e *endOfLifeServiceImpl) GetProductReleases(product, release string) (dto.
 		var result dto.Product
 		p, err := e.repo.GetProductReleases(product, release)
 		if err != nil {
+			e.log.Error("failed to get product release info", zap.Error(err))
 			return result, err
 		}
 
@@ -127,6 +133,7 @@ func (e *endOfLifeServiceImpl) GetProductReleasesLatest(product string) (dto.Pro
 		var result dto.Product
 		p, err := e.repo.GetProductReleasesLatest(product)
 		if err != nil {
+			e.log.Error("failed to get latest product release info", zap.Error(err))
 			return result, err
 		}
 

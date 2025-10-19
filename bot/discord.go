@@ -1,25 +1,34 @@
 package bot
 
 import (
-	"fmt"
-	"log"
 	"os"
 	"os/signal"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rojack96/endoflife-bot/bot/interaction"
+	"go.uber.org/zap"
 )
 
 type DiscordBot struct {
-	Token string
+	token string
+	log   *zap.Logger
+}
+
+func NewDiscordBot(token string, logger *zap.Logger) *DiscordBot {
+	return &DiscordBot{
+		token: token,
+		log:   logger,
+	}
 }
 
 func (d *DiscordBot) Run() {
-	discord, err := discordgo.New("Bot " + d.Token)
-	checkNilErr(err)
+	discord, err := discordgo.New("Bot " + d.token)
+	if err != nil {
+		d.log.Fatal("erro to inizialize discord session", zap.Error(err))
+	}
 
 	// Registra l'handler per le interactions invece di messaggi
-	discord.AddHandler(handleInteraction)
+	discord.AddHandler(d.handleInteraction)
 
 	commands := applicationCommand()
 
@@ -30,18 +39,19 @@ func (d *DiscordBot) Run() {
 	for _, cmd := range commands {
 		_, err := discord.ApplicationCommandCreate(discord.State.User.ID, "", cmd)
 		if err != nil {
-			log.Printf("Errore creazione comando %v: %v", cmd.Name, err)
+			d.log.Error("error creating command", zap.String("command", cmd.Name), zap.Error(err))
 		}
 	}
 
-	fmt.Println("Bot running....")
+	d.log.Info("End Of Life Bot running....")
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
 }
 
-func handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (d *DiscordBot) handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	inter := interaction.NewInteraction(s, i)
+	inter.SetLogger(d.log)
 	// handle command slash interactions
 	if i.Type == discordgo.InteractionApplicationCommand {
 		switch i.ApplicationCommandData().Name {
@@ -67,11 +77,5 @@ func handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 		// product_releases_prev_{escaped}_{page}
 		inter.ProductsButton(custom)
-	}
-}
-
-func checkNilErr(e error) {
-	if e != nil {
-		log.Fatal("Error message")
 	}
 }

@@ -2,12 +2,12 @@ package interaction
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rojack96/endoflife-bot/endoflife"
+	"go.uber.org/zap"
 )
 
 func (i *Interaction) ProductList() {
@@ -15,7 +15,7 @@ func (i *Interaction) ProductList() {
 	if len(i.ic.ApplicationCommandData().Options) > 0 {
 		page = int(i.ic.ApplicationCommandData().Options[0].IntValue())
 	}
-	data := responseProductList(page)
+	data := i.responseProductList(page)
 	i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: data,
@@ -32,6 +32,7 @@ func (i *Interaction) ProductListButton(custom string) {
 		pageStr := parts[2]
 		page, err := strconv.Atoi(pageStr)
 		if err != nil {
+			i.log.Warn("malformed page number in button custom id", zap.String("custom_id", custom))
 			// ignore malformed id
 			return
 		}
@@ -52,7 +53,7 @@ func (i *Interaction) ProductListButton(custom string) {
 		}
 
 		// costruisci nuova pagina
-		data := responseProductList(newPage)
+		data := i.responseProductList(newPage)
 
 		// aggiorna il messaggio originale (edit)
 		err = i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
@@ -60,21 +61,21 @@ func (i *Interaction) ProductListButton(custom string) {
 			Data: data,
 		})
 		if err != nil {
-			log.Printf("failed to update message: %v", err)
+			i.log.Error("failed to update product list message", zap.Error(err))
 		}
 		return
 	}
 }
 
 // Message handlers
-func responseProductList(page int) *discordgo.InteractionResponseData {
+func (i *Interaction) responseProductList(page int) *discordgo.InteractionResponseData {
 	var totalPages int = 0
-	repo := endoflife.NewEndOfLifeRepository()
-	service := endoflife.NewEndOfLifeService(repo)
+	repo := endoflife.NewEndOfLifeRepository(i.log)
+	service := endoflife.NewEndOfLifeService(repo, i.log)
 
 	products, err := service.GetAllProducts()
 	if err != nil {
-		log.Fatal("Error fetching products:", err)
+		i.log.Error("failed to get products list", zap.Error(err))
 	}
 
 	productsPage, totalPages := paginate(products, page, 10)

@@ -2,13 +2,13 @@ package interaction
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rojack96/endoflife-bot/endoflife"
+	"go.uber.org/zap"
 )
 
 func (i *Interaction) Products() {
@@ -36,7 +36,7 @@ func (i *Interaction) Products() {
 		return
 	}
 
-	data := responseProducts(product, page)
+	data := i.responseProducts(product, page)
 	i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: data,
@@ -54,6 +54,7 @@ func (i *Interaction) ProductsButton(custom string) {
 		pageStr := parts[4]
 		page, err := strconv.Atoi(pageStr)
 		if err != nil {
+			i.log.Warn("malformed page number in button custom id", zap.String("custom_id", custom))
 			return
 		}
 		productName, err := url.QueryUnescape(escapedProduct)
@@ -73,25 +74,25 @@ func (i *Interaction) ProductsButton(custom string) {
 			newPage = 1
 		}
 
-		data := responseProducts(productName, newPage)
+		data := i.responseProducts(productName, newPage)
 		err = i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: data,
 		})
 		if err != nil {
-			log.Printf("failed to update product releases message: %v", err)
+			i.log.Error("failed to update product releases message", zap.Error(err))
 		}
 		return
 	}
 }
 
-func responseProducts(product string, page int) *discordgo.InteractionResponseData {
-	repo := endoflife.NewEndOfLifeRepository()
-	service := endoflife.NewEndOfLifeService(repo)
+func (i *Interaction) responseProducts(product string, page int) *discordgo.InteractionResponseData {
+	repo := endoflife.NewEndOfLifeRepository(i.log)
+	service := endoflife.NewEndOfLifeService(repo, i.log)
 
 	productInfo, err := service.GetProducts(product)
 	if err != nil {
-		log.Fatal("Error fetching products:", err)
+		i.log.Error("failed to get products list", zap.Error(err))
 	}
 
 	// costruisci tutti i campi (uno per ogni release)

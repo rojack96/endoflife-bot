@@ -1,14 +1,17 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/rojack96/endoflife-bot/bot"
+	"github.com/rojack96/endoflife-bot/config"
 )
 
 func main() {
+	log := config.GetLogger()
+
+	log.Info("Starting EndOfLife Bot...")
 	// Try to load .env file if it exists
 	godotenv.Load()
 
@@ -18,6 +21,6 @@ func main() {
 		log.Fatal("DISCORD_TOKEN environment variable is not set")
 	}
 
-	bot := &bot.DiscordBot{Token: token}
+	bot := bot.NewDiscordBot(token, log)
 	bot.Run()
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/rojack96/endoflife-bot/endoflife/endpoints"
 	"github.com/rojack96/endoflife-bot/endoflife/models"
 	httpclient "github.com/rojack96/endoflife-bot/http"
+	"go.uber.org/zap"
 )
 
 const (
@@ -13,11 +14,13 @@ const (
 	productsPathParam = "{product}"
 )
 
-type endOfLifeRepositoryImpl struct{}
+type endOfLifeRepositoryImpl struct {
+	log *zap.Logger
+}
 
 // NewEndOfLifeRepository creates a new instance of EndOfLifeRepository
-func NewEndOfLifeRepository() EndOfLifeRepository {
-	return &endOfLifeRepositoryImpl{}
+func NewEndOfLifeRepository(log *zap.Logger) EndOfLifeRepository {
+	return &endOfLifeRepositoryImpl{log: log}
 }
 
 func (e *endOfLifeRepositoryImpl) GetIndex() (*models.UriListResponse, error) {
@@ -29,6 +32,7 @@ func (e *endOfLifeRepositoryImpl) GetIndex() (*models.UriListResponse, error) {
 	url := baseURL + endpoints.Index
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET index", zap.Error(err))
 		return nil, err
 	}
 
@@ -45,6 +49,9 @@ func (e *endOfLifeRepositoryImpl) GetAllProducts() (*models.ProductListResponse,
 	url := baseURL + endpoints.Products
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET all products",
+			zap.String("endpoint", endpoints.Products),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -61,6 +68,9 @@ func (e *endOfLifeRepositoryImpl) GetAllProductsFull() (*models.FullProductListR
 	url := baseURL + endpoints.ProductsFull
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET all products full",
+			zap.String("endpoint", endpoints.ProductsFull),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -77,6 +87,9 @@ func (e *endOfLifeRepositoryImpl) GetProduct(product string) (*models.ProductRes
 	url := baseURL + strings.Replace(endpoints.ProductsOne, productsPathParam, product, 1)
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET product",
+			zap.String("endpoint", strings.Replace(endpoints.ProductsOne, productsPathParam, product, 1)),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -94,6 +107,9 @@ func (e *endOfLifeRepositoryImpl) GetProductReleases(product, release string) (*
 	url = strings.Replace(url, "{release}", release, 1)
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET product releases",
+			zap.String("endpoint", strings.Replace(endpoints.ProductsRelease, productsPathParam, product, 1)),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -110,6 +126,9 @@ func (e *endOfLifeRepositoryImpl) GetProductReleasesLatest(product string) (*mod
 	url := baseURL + strings.Replace(endpoints.ProductsReleasesLatest, productsPathParam, product, 1)
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET product releases latest",
+			zap.String("endpoint", strings.Replace(endpoints.ProductsReleasesLatest, productsPathParam, product, 1)),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -126,6 +145,9 @@ func (e *endOfLifeRepositoryImpl) GetCategories() (*models.UriListResponse, erro
 	url := baseURL + endpoints.Categories
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET categories",
+			zap.String("endpoint", endpoints.Categories),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -142,6 +164,9 @@ func (e *endOfLifeRepositoryImpl) GetCategoriesProducts(category string) (*model
 	url := baseURL + strings.Replace(endpoints.CategoriesProducts, "{category}", category, 1)
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET category products",
+			zap.String("endpoint", strings.Replace(endpoints.CategoriesProducts, "{category}", category, 1)),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -158,6 +183,9 @@ func (e *endOfLifeRepositoryImpl) GetTags() (*models.UriListResponse, error) {
 	url := baseURL + endpoints.Tags
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET tags",
+			zap.String("endpoint", endpoints.Tags),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -174,6 +202,9 @@ func (e *endOfLifeRepositoryImpl) GetTagsProducts(tag string) (*models.UriListRe
 	url := baseURL + strings.Replace(endpoints.TagsProducts, "{tag}", tag, 1)
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET tag products",
+			zap.String("endpoint", strings.Replace(endpoints.TagsProducts, "{tag}", tag, 1)),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -190,6 +221,9 @@ func (e *endOfLifeRepositoryImpl) GetIdentifiers() (*models.IdentifierListRespon
 	url := baseURL + endpoints.Identifiers
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET identifiers",
+			zap.String("endpoint", endpoints.Identifiers),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -206,6 +240,9 @@ func (e *endOfLifeRepositoryImpl) GetIdentifiersType(identifierType string) (*mo
 	url := baseURL + strings.Replace(endpoints.IdentifiersType, "{identifier_type}", identifierType, 1)
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+		e.log.Error("failed request GET identifiers by type",
+			zap.String("endpoint", strings.Replace(endpoints.IdentifiersType, "{identifier_type}", identifierType, 1)),
+			zap.Error(err))
 		return nil, err
 	}
 

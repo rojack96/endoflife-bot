@@ -36,7 +36,8 @@ func helpResponse() *discordgo.InteractionResponseData {
 			{
 				Name: "/product-info product",
 				Value: "Shows detailed information about all releases of a product in a paginated view.\n" +
-					"Required: `product` - The name of the product\n",
+					"Required: `product` - The name of the product\n" +
+					"Optional: `page` - The page number to display (default: 1)",
 			},
 			{
 				Name: "/product-releases [product] [release]",
