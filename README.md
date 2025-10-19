@@ -2,7 +2,7 @@
 
 ### 🧠 Overview
 
-**EndOfLife Bot** is a Discord bot that integrates with the [endoflife.date](https://endoflife.date) public API to help you track software lifecycle information directly in your Discord server.
+[**EndOfLife Bot**](https://discord.com/oauth2/authorize?client_id=1428792998103089162&permissions=2252764034107392&integration_type=0&scope=bot) is a Discord bot that integrates with the [endoflife.date](https://endoflife.date) public API to help you track software lifecycle information directly in your Discord server.
 
 With this bot, you can quickly check:
 
@@ -59,7 +59,6 @@ With this bot, you can quickly check:
 * [**endoflife.date API**](https://endoflife.date/docs/api/v1/) — public data source for software lifecycle info
 
 ---
-
 ### 🤝 Contributing
 
 Contributions are welcome!
@@ -73,6 +72,8 @@ If you’d like to improve the bot, fix bugs, or add new features (for example n
 
 Make sure to follow good Go practices and keep your code clean and documented.
 
+---
+### [Add bot in your server](https://discord.com/oauth2/authorize?client_id=1428792998103089162&permissions=2252764034107392&integration_type=0&scope=bot)
 ---
 
 ### 🧾 License
