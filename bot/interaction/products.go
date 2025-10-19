@@ -11,7 +11,39 @@ import (
 	"github.com/rojack96/endoflife-bot/endoflife"
 )
 
-func ProductsButton(custom string, s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (i *Interaction) Products() {
+	product := ""
+	page := 1
+	opts := i.ic.ApplicationCommandData().Options
+	if len(opts) > 0 {
+		// options may be in any order; iterate
+		for _, o := range opts {
+			if o.Name == "product" && o.StringValue() != "" {
+				product = o.StringValue()
+			}
+			if o.Name == "page" {
+				page = int(o.IntValue())
+			}
+		}
+	}
+	if product == "" {
+		i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Please provide a valid product name.",
+			},
+		})
+		return
+	}
+
+	data := responseProducts(product, page)
+	i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: data,
+	})
+}
+
+func (i *Interaction) ProductsButton(custom string) {
 	if strings.HasPrefix(custom, "product_releases_prev_") || strings.HasPrefix(custom, "product_releases_next_") {
 		parts := strings.Split(custom, "_")
 		// expected: product, releases, prev|next, {escapedProduct}, {page}
@@ -41,7 +73,7 @@ func ProductsButton(custom string, s *discordgo.Session, i *discordgo.Interactio
 		}
 
 		data := responseProducts(productName, newPage)
-		err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		err = i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: data,
 		})
@@ -50,38 +82,6 @@ func ProductsButton(custom string, s *discordgo.Session, i *discordgo.Interactio
 		}
 		return
 	}
-}
-
-func Products(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	product := ""
-	page := 1
-	opts := i.ApplicationCommandData().Options
-	if len(opts) > 0 {
-		// options may be in any order; iterate
-		for _, o := range opts {
-			if o.Name == "product" && o.StringValue() != "" {
-				product = o.StringValue()
-			}
-			if o.Name == "page" {
-				page = int(o.IntValue())
-			}
-		}
-	}
-	if product == "" {
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Please provide a valid product name.",
-			},
-		})
-		return
-	}
-
-	data := responseProducts(product, page)
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: data,
-	})
 }
 
 func responseProducts(product string, page int) *discordgo.InteractionResponseData {

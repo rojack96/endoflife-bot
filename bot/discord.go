@@ -41,31 +41,32 @@ func (d *DiscordBot) Run() {
 }
 
 func handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	// Gestione comandi slash
+	inter := interaction.NewInteraction(s, i)
+	// handle command slash interactions
 	if i.Type == discordgo.InteractionApplicationCommand {
 		switch i.ApplicationCommandData().Name {
 		case "help":
-			interaction.Help(s, i)
+			inter.Help()
 		case "product-list":
-			interaction.ProductList(s, i)
+			inter.ProductList()
 		case "product-lts":
-			interaction.ProductLts(s, i)
+			inter.ProductLts()
 		case "product-info":
-			interaction.Products(s, i)
+			inter.Products()
 		case "product-releases":
-			interaction.ProductRelease(s, i)
+			inter.ProductRelease()
 		}
 		return
 	}
 
-	// Gestione component interactions (bottoni / select)
+	// handle button interactions
 	if i.Type == discordgo.InteractionMessageComponent {
 		custom := i.MessageComponentData().CustomID
-		// aspettarsi: products_prev_{page} o products_next_{page}
-		interaction.ProductListButton(custom, s, i)
+		// products_prev_{page} o products_next_{page}
+		inter.ProductListButton(custom)
 
-		// Gestione bottoni paginazione releases: product_releases_prev_{escaped}_{page}
-		interaction.ProductsButton(custom, s, i)
+		// product_releases_prev_{escaped}_{page}
+		inter.ProductsButton(custom)
 	}
 }
 

@@ -4,9 +4,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func Help(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (i *Interaction) Help() {
 	data := helpResponse()
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: data,
 	})

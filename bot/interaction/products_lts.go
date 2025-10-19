@@ -7,14 +7,14 @@ import (
 	"github.com/rojack96/endoflife-bot/endoflife"
 )
 
-func ProductLts(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (i *Interaction) ProductLts() {
 	product := ""
-	if len(i.ApplicationCommandData().Options) > 0 {
-		product = i.ApplicationCommandData().Options[0].StringValue()
+	if len(i.ic.ApplicationCommandData().Options) > 0 {
+		product = i.ic.ApplicationCommandData().Options[0].StringValue()
 	}
 
 	productLts := responseProductLts(product)
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Embeds: productLts.Embeds,

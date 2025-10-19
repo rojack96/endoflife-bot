@@ -8,10 +8,10 @@ import (
 	"github.com/rojack96/endoflife-bot/endoflife/dto"
 )
 
-func ProductRelease(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (i *Interaction) ProductRelease() {
 	product := ""
 	release := ""
-	opts := i.ApplicationCommandData().Options
+	opts := i.ic.ApplicationCommandData().Options
 	if len(opts) > 0 {
 		for _, o := range opts {
 			if o.Name == "product" {
@@ -24,7 +24,7 @@ func ProductRelease(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	if product == "" || release == "" {
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: "Please provide both product name and release version.",
@@ -34,7 +34,7 @@ func ProductRelease(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	data := responseProductReleases(product, release)
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: data,
 	})

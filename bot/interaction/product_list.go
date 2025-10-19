@@ -10,19 +10,19 @@ import (
 	"github.com/rojack96/endoflife-bot/endoflife"
 )
 
-func ProductList(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (i *Interaction) ProductList() {
 	page := 1
-	if len(i.ApplicationCommandData().Options) > 0 {
-		page = int(i.ApplicationCommandData().Options[0].IntValue())
+	if len(i.ic.ApplicationCommandData().Options) > 0 {
+		page = int(i.ic.ApplicationCommandData().Options[0].IntValue())
 	}
 	data := responseProductList(page)
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: data,
 	})
 }
 
-func ProductListButton(custom string, s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (i *Interaction) ProductListButton(custom string) {
 	if strings.HasPrefix(custom, "products_prev_") || strings.HasPrefix(custom, "products_next_") {
 		parts := strings.Split(custom, "_")
 		if len(parts) < 3 {
@@ -51,7 +51,7 @@ func ProductListButton(custom string, s *discordgo.Session, i *discordgo.Interac
 		data := responseProductList(newPage)
 
 		// aggiorna il messaggio originale (edit)
-		err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		err = i.session.InteractionRespond(i.ic.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: data,
 		})
