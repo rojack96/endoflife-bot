@@ -2,6 +2,7 @@ package interaction
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rojack96/endoflife-bot/endoflife"
@@ -68,9 +69,18 @@ func (i *Interaction) responseProductReleases(product string, release string) *d
 		}
 	}
 
+	color := 0x00FF00 // green
+	if productInfo.EndOfSecuritySupport != nil {
+		endOfSecuritySupport, _ := time.Parse("2006-01-02", *productInfo.EndOfSecuritySupport)
+		if endOfSecuritySupport.Before(time.Now()) {
+			color = 0xFF0000 // red
+		}
+	}
+
 	embed := &discordgo.MessageEmbed{
 		Type:  discordgo.EmbedTypeRich,
 		Title: fmt.Sprintf("%s %s", productInfo.Name, productInfo.Release),
+		Color: color,
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Released",

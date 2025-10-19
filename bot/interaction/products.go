@@ -164,6 +164,7 @@ func (i *Interaction) responseProducts(product string, page int) *discordgo.Inte
 		Title:       product,
 		Description: "List of versions:",
 		Fields:      pageFields,
+		Color:       3447003, // blue
 		Footer:      footer,
 	}
 

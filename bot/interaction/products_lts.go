@@ -82,7 +82,8 @@ func (i *Interaction) responseProductLts(product string) *discordgo.MessageSend 
 			Type:  discordgo.EmbedTypeRich,
 			Title: productInfo.Name + " LTS Information",
 			//Description: "List of products available:",
-			Fields: fields, // Paginate to show only first 25 products
+			Fields: fields,   // Paginate to show only first 25 products
+			Color:  0xFFA500, // Orange color in hexadecimal
 		},
 		},
 	}

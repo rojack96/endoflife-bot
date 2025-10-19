@@ -96,6 +96,7 @@ func (i *Interaction) responseProductList(page int) *discordgo.InteractionRespon
 		Title:       "Products List",
 		Description: "List of products available:",
 		Fields:      fields,
+		Color:       0xADD8E6, // light blue
 		Footer:      footer,
 	}
 
