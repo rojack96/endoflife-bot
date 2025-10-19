@@ -10,7 +10,6 @@ ENV_FILE=".env"
 VERSION="${VERSION:-}"
 
 if [ -z "$VERSION" ] && [ -f "$ENV_FILE" ]; then
-  # parse VERSION from .env (supports VERSION=... or VERSION="..." or VERSION='...')
   VERSION=$(grep -E '^\s*VERSION\s*=' "$ENV_FILE" | tail -n1 | sed -E 's/^\s*VERSION\s*=\s*//' | tr -d '"' | tr -d "'" | xargs)
 fi
 
@@ -24,7 +23,7 @@ echo "Building project..."
 echo "Version: $VERSION"
 echo "Output binary: $OUT"
 
-# build (assumes main package is in the current directory)
-go build -o "$OUT" .
+# Build for Linux amd64
+GOOS=linux GOARCH=amd64 go build -o "$OUT" .
 
 echo "Build complete: $(pwd)/$OUT"
