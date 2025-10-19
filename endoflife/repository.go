@@ -8,7 +8,10 @@ import (
 	httpclient "github.com/rojack96/endoflife-bot/http"
 )
 
-const baseURL = "https://endoflife.date/api/v1"
+const (
+	baseURL           = "https://endoflife.date/api/v1"
+	productsPathParam = "{product}"
+)
 
 type endOfLifeRepositoryImpl struct{}
 
@@ -71,7 +74,7 @@ func (e *endOfLifeRepositoryImpl) GetProduct(product string) (*models.ProductRes
 		err    error
 	)
 
-	url := baseURL + strings.Replace(endpoints.ProductsOne, "{product}", product, 1)
+	url := baseURL + strings.Replace(endpoints.ProductsOne, productsPathParam, product, 1)
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
 		return nil, err
@@ -87,7 +90,7 @@ func (e *endOfLifeRepositoryImpl) GetProductReleases(product, release string) (*
 		err    error
 	)
 
-	url := baseURL + strings.Replace(endpoints.ProductsRelease, "{product}", product, 1)
+	url := baseURL + strings.Replace(endpoints.ProductsRelease, productsPathParam, product, 1)
 	url = strings.Replace(url, "{release}", release, 1)
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
@@ -104,7 +107,7 @@ func (e *endOfLifeRepositoryImpl) GetProductReleasesLatest(product string) (*mod
 		err    error
 	)
 
-	url := baseURL + strings.Replace(endpoints.ProductsReleasesLatest, "{product}", product, 1)
+	url := baseURL + strings.Replace(endpoints.ProductsReleasesLatest, productsPathParam, product, 1)
 
 	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
 		return nil, err

@@ -37,10 +37,14 @@ func (i *Interaction) ProductListButton(custom string) {
 		}
 
 		newPage := page
-		if parts[1] == "prev" {
+		switch parts[1] {
+		case "prev":
 			newPage = page - 1
-		} else if parts[1] == "next" {
+		case "next":
 			newPage = page + 1
+		default:
+			// ignore unknown action
+			return
 		}
 
 		if newPage < 1 {
