@@ -1,208 +1,183 @@
 package endoflife
 
 import (
-	"strings"
+	"time"
 
-	"github.com/rojack96/endoflife-bot/endoflife/endpoints"
-	"github.com/rojack96/endoflife-bot/endoflife/models"
-	httpclient "github.com/rojack96/endoflife-bot/http"
+	"github.com/rojack96/endoflife-bot/endoflife/dto"
+	"go.uber.org/zap"
 )
 
-type EndOfLifeService struct{}
-
-// NewEndOfLifeService creates a new instance of EndOfLifeService
-func NewEndOfLifeService() *EndOfLifeService {
-	return &EndOfLifeService{}
+type EndOfLifeService interface {
+	GetAllProducts() ([]string, error)
+	GetProductLts(product string) (dto.Product, error)
+	GetProducts(product string) ([]dto.Product, error)
+	GetProductReleases(product, release string) (dto.Product, error)
+	GetProductReleasesLatest(product string) (dto.Product, error)
+}
+type endOfLifeServiceImpl struct {
+	repo EndOfLifeRepository
+	log  *zap.Logger
 }
 
-func (e *EndOfLifeService) GetIndex() (*models.UriListResponse, error) {
-	var (
-		result models.UriListResponse
-		err    error
-	)
+func NewEndOfLifeService(repo EndOfLifeRepository, log *zap.Logger) EndOfLifeService {
+	return &endOfLifeServiceImpl{repo, log}
+}
 
-	url := endpoints.Index
+func (e *endOfLifeServiceImpl) GetAllProducts() ([]string, error) {
+	var result []string
 
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
+	allProducts, err := e.repo.GetAllProducts()
+	if err != nil {
+		e.log.Error("failed to get all products", zap.Error(err))
 		return nil, err
 	}
 
-	return &result, nil
-}
-
-// GetAllProducts retrieves all products from the End of Life API
-func (e *EndOfLifeService) GetAllProducts() (*models.ProductListResponse, error) {
-	var (
-		result models.ProductListResponse
-		err    error
-	)
-
-	url := endpoints.Products
-
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
-		return nil, err
+	for _, product := range allProducts.Result {
+		result = append(result, product.Name)
 	}
 
-	return &result, nil
+	return result, err
 }
 
-// GetAllProductsFull retrieves all products with full details from the End of Life API
-func (e *EndOfLifeService) GetAllProductsFull() (*models.FullProductListResponse, error) {
-	var (
-		result models.FullProductListResponse
-		err    error
-	)
-
-	url := endpoints.ProductsFull
-
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
-		return nil, err
+func (e *endOfLifeServiceImpl) GetProductLts(product string) (dto.Product, error) {
+	var result dto.Product
+	p, err := e.repo.GetProduct(product)
+	if err != nil {
+		e.log.Error("failed to get product LTS info", zap.Error(err))
+		return dto.Product{}, err
 	}
 
-	return &result, nil
+	for _, release := range p.Result.Releases {
+		if release.IsLts {
+			result.Name = product
+			result.Release = release.Name
+			result.Released = release.ReleaseDate
+			result.EndOfActiveSupport = release.EoasFrom
+			result.EndOfSecuritySupport = release.EolFrom
+			result.Latest.Version = release.Latest.Name
+			result.Latest.Date = release.Latest.Date
+			result.Latest.Link = release.Latest.Link
+			break
+		}
+	}
+
+	return result, nil
 }
 
-// GetProduct retrieves a specific product by its name from the End of Life API
-func (e *EndOfLifeService) GetProduct(product string) (*models.ProductResponse, error) {
-	var (
-		result models.ProductResponse
-		err    error
-	)
-
-	url := strings.Replace(endpoints.ProductsOne, "{product}", product, 1)
-
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
-		return nil, err
+func (e *endOfLifeServiceImpl) GetProducts(product string) ([]dto.Product, error) {
+	var result []dto.Product
+	p, err := e.repo.GetProduct(product)
+	if err != nil {
+		e.log.Error("failed to get products info", zap.Error(err))
+		return result, err
 	}
 
-	return &result, nil
+	for _, release := range p.Result.Releases {
+		releaseName := release.Name
+		if release.EolFrom != nil {
+			endOfSecuritySupport, _ := time.Parse("2006-01-02", *release.EolFrom)
+			if endOfSecuritySupport.Before(time.Now()) {
+				releaseName = "~~" + release.Name + "~~ (EOL)"
+			}
+		}
+
+		result = append(result, dto.Product{
+			Name:                 product,
+			Release:              releaseName,
+			Released:             release.ReleaseDate,
+			EndOfActiveSupport:   release.EoasFrom,
+			EndOfSecuritySupport: release.EolFrom,
+			Latest: struct {
+				Version string `json:"version"`
+				Date    string `json:"date"`
+				Link    string `json:"link"`
+			}{
+				Version: release.Latest.Name,
+				Date:    release.Latest.Date,
+				Link:    release.Latest.Link,
+			},
+		})
+	}
+
+	return result, nil
 }
 
-// GetProductReleases retrieves releases for a specific product from the End of Life API
-func (e *EndOfLifeService) GetProductReleases(product, release string) (*models.ProductReleaseResponse, error) {
-	var (
-		result models.ProductReleaseResponse
-		err    error
-	)
+func (e *endOfLifeServiceImpl) GetProductReleases(product, release string) (dto.Product, error) {
+	{
+		var result dto.Product
+		p, err := e.repo.GetProductReleases(product, release)
+		if err != nil {
+			e.log.Error("failed to get product release info", zap.Error(err))
+			return result, err
+		}
 
-	url := strings.Replace(endpoints.ProductsRelease, "{product}", product, 1)
-	url = strings.Replace(url, "{release}", release, 1)
+		releaseName := p.Result.Name
+		if p.Result.EolFrom != nil {
+			endOfSecuritySupport, _ := time.Parse("2006-01-02", *p.Result.EolFrom)
+			if endOfSecuritySupport.Before(time.Now()) {
+				releaseName += " (EOL)"
+			}
+		}
 
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
-		return nil, err
+		result = dto.Product{
+			Name:     product,
+			Release:  releaseName,
+			Released: p.Result.ReleaseDate,
+			Latest: struct {
+				Version string `json:"version"`
+				Date    string `json:"date"`
+				Link    string `json:"link"`
+			}{
+				Version: p.Result.Latest.Name,
+				Date:    p.Result.Latest.Date,
+				Link:    p.Result.Latest.Link,
+			},
+		}
+
+		if p.Result.EoasFrom != nil {
+			result.EndOfActiveSupport = p.Result.EoasFrom
+		}
+
+		if p.Result.EolFrom != nil {
+			result.EndOfSecuritySupport = p.Result.EolFrom
+		}
+
+		return result, nil
 	}
-
-	return &result, nil
 }
 
-// GetProductReleasesLatest retrieves the latest release for a specific product from the End of Life API
-func (e *EndOfLifeService) GetProductReleasesLatest(product string) (*models.ProductReleaseResponse, error) {
-	var (
-		result models.ProductReleaseResponse
-		err    error
-	)
+func (e *endOfLifeServiceImpl) GetProductReleasesLatest(product string) (dto.Product, error) {
+	{
+		var result dto.Product
+		p, err := e.repo.GetProductReleasesLatest(product)
+		if err != nil {
+			e.log.Error("failed to get latest product release info", zap.Error(err))
+			return result, err
+		}
 
-	url := strings.Replace(endpoints.ProductsReleasesLatest, "{product}", product, 1)
+		result = dto.Product{
+			Name:     product,
+			Release:  p.Result.Name,
+			Released: p.Result.ReleaseDate,
+			Latest: struct {
+				Version string `json:"version"`
+				Date    string `json:"date"`
+				Link    string `json:"link"`
+			}{
+				Version: p.Result.Latest.Name,
+				Date:    p.Result.Latest.Date,
+				Link:    p.Result.Latest.Link,
+			},
+		}
 
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
-		return nil, err
+		if p.Result.EoasFrom != nil {
+			result.EndOfActiveSupport = p.Result.EoasFrom
+		}
+
+		if p.Result.EolFrom != nil {
+			result.EndOfSecuritySupport = p.Result.EolFrom
+		}
+
+		return result, nil
 	}
-
-	return &result, nil
-}
-
-// GetCategories retrieves all categories from the End of Life API
-func (e *EndOfLifeService) GetCategories() (*models.UriListResponse, error) {
-	var (
-		result models.UriListResponse
-		err    error
-	)
-
-	url := endpoints.Categories
-
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-// GetCategoriesProducts retrieves products for a specific category from the End of Life API
-func (e *EndOfLifeService) GetCategoriesProducts(category string) (*models.ProductListResponse, error) {
-	var (
-		result models.ProductListResponse
-		err    error
-	)
-
-	url := strings.Replace(endpoints.CategoriesProducts, "{category}", category, 1)
-
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-// GetTags retrieves all tags from the End of Life API
-func (e *EndOfLifeService) GetTags() (*models.UriListResponse, error) {
-	var (
-		result models.UriListResponse
-		err    error
-	)
-
-	url := endpoints.Tags
-
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-// GetTagsProducts retrieves products for a specific tag from the End of Life API
-func (e *EndOfLifeService) GetTagsProducts(tag string) (*models.UriListResponse, error) {
-	var (
-		result models.UriListResponse
-		err    error
-	)
-
-	url := strings.Replace(endpoints.TagsProducts, "{tag}", tag, 1)
-
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-// GetIdentifiers retrieves all identifier types from the End of Life API
-func (e *EndOfLifeService) GetIdentifiers() (*models.IdentifierListResponse, error) {
-	var (
-		result models.IdentifierListResponse
-		err    error
-	)
-
-	url := endpoints.Identifiers
-
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-// GetIdentifiersType retrieves identifiers for a specific type from the End of Life API
-func (e *EndOfLifeService) GetIdentifiersType(identifierType string) (*models.IdentifierListResponse, error) {
-	var (
-		result models.IdentifierListResponse
-		err    error
-	)
-
-	url := strings.Replace(endpoints.IdentifiersType, "{identifier_type}", identifierType, 1)
-
-	if err = httpclient.HttpRequest("GET", url, nil, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
 }

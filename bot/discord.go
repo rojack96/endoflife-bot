@@ -1,67 +1,81 @@
 package bot
 
 import (
-	"fmt"
-	"log"
 	"os"
 	"os/signal"
-	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/rojack96/endoflife-bot/bot/interaction"
+	"go.uber.org/zap"
 )
 
 type DiscordBot struct {
-	Token string
+	token string
+	log   *zap.Logger
+}
+
+func NewDiscordBot(token string, logger *zap.Logger) *DiscordBot {
+	return &DiscordBot{
+		token: token,
+		log:   logger,
+	}
 }
 
 func (d *DiscordBot) Run() {
+	discord, err := discordgo.New("Bot " + d.token)
+	if err != nil {
+		d.log.Fatal("erro to inizialize discord session", zap.Error(err))
+	}
 
-	// create a session
-	discord, err := discordgo.New("Bot " + d.Token)
-	checkNilErr(err)
+	// Registra l'handler per le interactions invece di messaggi
+	discord.AddHandler(d.handleInteraction)
 
-	// add a event handler
-	discord.AddHandler(newMessage)
+	commands := applicationCommand()
 
-	// open session
 	discord.Open()
-	defer discord.Close() // close session, after function termination
+	defer discord.Close()
 
-	// keep bot running untill there is NO os interruption (ctrl + C)
-	fmt.Println("Bot running....")
+	// Registra i comandi per il bot
+	for _, cmd := range commands {
+		_, err := discord.ApplicationCommandCreate(discord.State.User.ID, "", cmd)
+		if err != nil {
+			d.log.Error("error creating command", zap.String("command", cmd.Name), zap.Error(err))
+		}
+	}
+
+	d.log.Info("End Of Life Bot running....")
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
-
 }
 
-func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
-
-	/* prevent bot responding to its own message
-	this is achived by looking into the message author id
-	if message.author.id is same as bot.author.id then just return
-	*/
-	if message.Author.ID == discord.State.User.ID {
+func (d *DiscordBot) handleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	inter := interaction.NewInteraction(s, i)
+	inter.SetLogger(d.log)
+	// handle command slash interactions
+	if i.Type == discordgo.InteractionApplicationCommand {
+		switch i.ApplicationCommandData().Name {
+		case "help":
+			inter.Help()
+		case "product-list":
+			inter.ProductList()
+		case "product-lts":
+			inter.ProductLts()
+		case "product-info":
+			inter.Products()
+		case "product-releases":
+			inter.ProductRelease()
+		}
 		return
 	}
 
-	// respond to user message if it contains `!help` or `!bye`
-	switch {
-	case strings.Contains(message.Content, "!help"):
-		discord.ChannelMessageSend(message.ChannelID, "Hello World😃")
-	case strings.Contains(message.Content, "!product-list"):
-		discord.ChannelMessageSend(message.ChannelID, "Good Bye👋")
-	// add more cases if required
-	case strings.Contains(message.Content, "!product"):
-		discord.ChannelMessageSend(message.ChannelID, "Good Bye👋")
-	case strings.Contains(message.Content, "!product") && strings.Contains(message.Content, "!release"):
-		discord.ChannelMessageSend(message.ChannelID, "Good Bye👋")
-	}
+	// handle button interactions
+	if i.Type == discordgo.InteractionMessageComponent {
+		custom := i.MessageComponentData().CustomID
+		// products_prev_{page} o products_next_{page}
+		inter.ProductListButton(custom)
 
-}
-
-func checkNilErr(e error) {
-	if e != nil {
-		log.Fatal("Error message")
+		// product_releases_prev_{escaped}_{page}
+		inter.ProductsButton(custom)
 	}
 }

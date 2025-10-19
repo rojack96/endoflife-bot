@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 type Uri struct {
 	Name string `json:"name"`
 	Uri  string `json:"uri"`
@@ -17,26 +15,26 @@ type UnknownProperties struct {
 }
 
 type ProductVersion struct {
-	Name string    `json:"name"`
-	Date time.Time `json:"date,omitempty"`
-	Link string    `json:"link,omitempty"`
+	Name string `json:"name"`
+	Date string `json:"date,omitempty"`
+	Link string `json:"link,omitempty"`
 }
 
 type ProductRelease struct {
 	Name             string          `json:"name"`
 	Codename         *string         `json:"codename,omitempty"`
 	Label            string          `json:"label"`
-	ReleaseDate      time.Time       `json:"releaseDate"`
+	ReleaseDate      string          `json:"releaseDate"`
 	IsLts            bool            `json:"isLts"`
-	LtsFrom          *time.Time      `json:"ltsFrom,omitempty"`
+	LtsFrom          *string         `json:"ltsFrom,omitempty"`
 	IsEoas           bool            `json:"isEoas"`
-	EoasFrom         *time.Time      `json:"eoaFrom,omitempty"`
+	EoasFrom         *string         `json:"eoasFrom,omitempty"`
 	IsEol            bool            `json:"isEol"`
-	EolFrom          *time.Time      `json:"eolFrom,omitempty"`
+	EolFrom          *string         `json:"eolFrom,omitempty"`
 	IsDiscontinued   bool            `json:"isDiscontinued"`
-	DiscontinuedFrom *time.Time      `json:"discontinuedFrom,omitempty"`
+	DiscontinuedFrom *string         `json:"discontinuedFrom,omitempty"`
 	IsEoes           bool            `json:"isEoes"`
-	EoesFrom         *time.Time      `json:"eoesFrom,omitempty"`
+	EoesFrom         *string         `json:"eoesFrom,omitempty"`
 	IsMaintained     bool            `json:"isMaintained"`
 	Latest           *ProductVersion `json:"latest,omitempty"`
 	Custom           *any            `json:"custom,omitempty"`
@@ -60,7 +58,7 @@ type ProductDetails struct {
 	VersionCommand *string      `json:"versionCommand,omitempty"`
 	Identifiers    []Identifier `json:"identifiers,omitempty"`
 	Labels         *struct {
-		Eoas         *string `json:"eos,omitempty"`
+		Eoas         *string `json:"eoas,omitempty"`
 		Discontinued *string `json:"discontinued,omitempty"`
 		Eol          string  `json:"eol"`
 		Eoes         *string `json:"eoes,omitempty"`
@@ -70,7 +68,7 @@ type ProductDetails struct {
 		Html          string  `json:"html"`
 		ReleasePolicy *string `json:"releasePolicy,omitempty"`
 	} `json:"links,omitempty"`
-	Releases []ProductVersion `json:"releases,omitempty"`
+	Releases []ProductRelease `json:"releases,omitempty"`
 }
 
 // Responses
@@ -94,14 +92,14 @@ type FullProductListResponse struct {
 }
 
 type ProductReleaseResponse struct {
-	SchemaVersion string           `json:"schema_version"`
-	Result        []ProductRelease `json:"result"`
+	SchemaVersion string         `json:"schema_version"`
+	Result        ProductRelease `json:"result"`
 }
 
 type ProductResponse struct {
-	SchemaVersion string           `json:"schema_version"`
-	LastModified  time.Time        `json:"last_modified"`
-	Result        []ProductDetails `json:"result"`
+	SchemaVersion string         `json:"schema_version"`
+	LastModified  string         `json:"last_modified"`
+	Result        ProductDetails `json:"result"`
 }
 
 type IdentifierListResponse struct {
